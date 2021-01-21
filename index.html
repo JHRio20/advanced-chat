@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+    body {
+        background-color: beige
+    }
+    body {
+        font-family: "Times New Roman", Times, serif;
+        font-weight: bold;
+    }
+
+    .delete-button {
+        background-color: rgb(218, 115, 74);
+        border-radius: 3px;
+        box-shadow: 0 0 5px 0 grey;
+        color: white;
+        cursor: pointer;
+        height: 100%;
+        display: grid;
+        justify-items: left;
+        padding: 10px;
+        width: fit-content;
+        margin-top: 10px;
+}
+    .message-image {
+        height: 50px;
+        height: 50px;
+    }
+</style>
+
+</head>
+<head>
+	<title>Advanced Chat</title>
+	<meta charset="utf-8"  />
+</head>
+
+<body>
+    <script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-firestore.js"></script>
+
+    <h1>Advanced Chat <img id="message-image" class="message-image" src='imgs/messages.png' /></h1>
+    <ul>
+        <li>Type any text to send a message, or</li>
+        <li>Type /giphy into the message box to send a random gif (e.g. /giphy cat)</li>
+        <div class="delete-button" onclick="deleteAllChat()">Delete All Chat Messages</div>
+    </ul>
+    <label>Username:</label>
+    <input type="text" id="username" placeholder="Rick">
+    
+    <label>Message:</label>
+    <input type="text" id="message" placeholder="Hi Morty">
+    
+    <button id="send">Send</button>
+    
+    <h3>Chat Messages:</h3>
+
+    <div id="messagesContainer">
+    </div>
+
+     <script>
+
+        var firebaseConfig = {
+            apiKey: "AIzaSyDpOhsM19g-BzI_IukJgwssQcDHc3fWftw",
+            authDomain: "advanced-chat-2d1ba.firebaseapp.com",
+            projectId: "advanced-chat-2d1ba",
+            storageBucket: "advanced-chat-2d1ba.appspot.com",
+            messagingSenderId: "864168024368",
+            appId: "1:864168024368:web:28f8cf90d79e59c660d0f5"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        var firestore = firebase.firestore();
+
+        var collectionRef = firestore.collection('messages')
+
+        var inputUsername = document.getElementById("username")
+        var inputMessage = document.getElementById("message")
+        var sendButton = document.getElementById("send")
+
+        var messagesContainer = document.getElementById("messagesContainer")
+
+        var apiKey = 'HXKNHt1i1gYbHKVb3bJfeYVBVLRlSqhI'
+        var base_url = 'https://api.giphy.com/v1/gifs/random?api_key=' + apiKey + '&rating=g&lang=en&tag='
+
+        var saveMessageToFirestore = (username, textToSave, bGiphyURL) => {
+            collectionRef.add({
+                    username: username,
+                    txt: textToSave,
+                    timestamp: Date.now(),
+                    bGiphyURL: bGiphyURL
+                }).then(() => {
+                    console.log("Message Saved!");
+                }).catch((error) => {
+                    console.log("Got and error:", error);
+                });
+        }
+
+        sendButton.addEventListener("click", () => {                
+            
+            txt = inputMessage.value
+
+            if(txt.indexOf('/giphy') == 0) {
+                console.log("String starts with the giphy command" + txt.indexOf('/giphy'))
+                
+                txt = txt.substring(7); 
+
+                url = base_url + encodeURI(txt)
+            
+                fetch(url)
+                .then(response => response.json())
+                .then(myJson => {
+                    saveMessageToFirestore(inputUsername.value, myJson.data.image_url, true)
+                })
+                
+            } else {
+                saveMessageToFirestore(inputUsername.value, inputMessage.value, false)
+            }
+        })
+
+        var getRealTimeUpdates = () => {
+            
+            var collectionQuery = firestore.collection('messages').orderBy('timestamp', 'asc')
+
+            collectionQuery.onSnapshot((snapshot) => {                
+
+                snapshot.docChanges().forEach((docChange) => {
+
+                    console.log(docChange)
+                    if(docChange.type==="added") {
+                        var data = docChange.doc.data()
+        
+                    if(data.bGiphyURL) {
+                        
+                        var div = document.createElement("DIV");  
+                        div.innerHTML = data.username + ": "; 
+
+                        var img = document.createElement("IMG");
+                        img.src = data.txt
+                        div.appendChild(img)
+                        messagesContainer.appendChild(div); 
+                    } else {
+                        
+                        var div = document.createElement("DIV");  
+                        div.innerHTML = data.username + ": " + data.txt; 
+                        messagesContainer.appendChild(div); 
+                    }                    
+                    }
+
+                    
+                });
+            });
+        }
+
+        getRealTimeUpdates();
+
+        var deleteAllChat = () => {
+            collectionRef.get().then((ss) => {
+              ss.docs.forEach((doc) => {
+                  console.log(doc.id)
+                  firestore.doc("messages/"+doc.id)
+                  .delete()
+              })
+
+            })
+            messagesContainer.innerHTML=""
+        }
+
+      </script>
+</body>
+</html>
+      </script>
+</body>
+</html>
